@@ -114,7 +114,6 @@ def preprocess(sex: str, inputs: dict, pre: dict) -> np.ndarray:
 def main():
     st.set_page_config(
         page_title="Predicción de Edad — Abulón",
-        page_icon="🐚",
         layout="centered",
     )
 
