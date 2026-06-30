@@ -35,39 +35,7 @@ RANGES = {
 # ── Carga única (cacheada) de modelo y preprocesador ─────────────────────────
 @st.cache_resource(show_spinner="Cargando modelo...")
 def load_assets():
-    """
-    Estrategia de carga con tres fallbacks para manejar diferencias entre
-    Keras 2 (guardado) y Keras 3 (entorno de ejecución):
-      1. tf.keras.models.load_model  con compile=False  [preferido]
-      2. tf_keras.models.load_model  con compile=False  [si hay keras 3 standalone]
-      3. Lanza error descriptivo con instrucción de solución
-    """
-    model = None
-    try:
-        # Intento 1: tf.keras con compile=False (evita error en métricas de Keras 3)
-        model = tf.keras.models.load_model(MODEL_PATH, compile=False)
-    except Exception as e1:
-        try:
-            # Intento 2: tf_keras (paquete de compatibilidad de Keras)
-            import tf_keras  # pip install tf_keras
-            model = tf_keras.models.load_model(MODEL_PATH, compile=False)
-        except ImportError:
-            raise RuntimeError(
-                f"No se pudo cargar el modelo.\n\n"
-                f"Error original: {e1}\n\n"
-                "Soluciones posibles:\n"
-                "  A) En la terminal del entorno virtual:\n"
-                "       pip install tf_keras\n"
-                "  B) O fija la versión de Keras compatible:\n"
-                "       pip install keras==2.15.0\n"
-                "  C) O re-entrena el modelo con la versión actual de Keras."
-            )
-        except Exception as e2:
-            raise RuntimeError(
-                f"Falló el intento 1 ({e1}) y el intento 2 ({e2}).\n"
-                "Verifica que el archivo .keras no esté corrupto."
-            )
-
+    model = tf.keras.models.load_model(MODEL_PATH)
     with open(PICKLE_PATH, "rb") as f:
         pre = pickle.load(f)
     return model, pre
@@ -114,6 +82,7 @@ def preprocess(sex: str, inputs: dict, pre: dict) -> np.ndarray:
 def main():
     st.set_page_config(
         page_title="Predicción de Edad — Abulón",
+        page_icon="🐚",
         layout="centered",
     )
 
@@ -133,12 +102,9 @@ def main():
     except (FileNotFoundError, OSError) as e:
         st.error(
             f"❌ No se encontró el archivo: **{getattr(e, 'filename', str(e))}**\n\n"
-            "Asegúrate de que `modelo_MLP_churn.keras` y "
-            "`preprocesamiento_churn.pkl` están en la misma carpeta que este script."
+            f"Asegúrate de que `{MODEL_PATH}` y "
+            f"`{PICKLE_PATH}` están en la misma carpeta que este script."
         )
-        st.stop()
-    except RuntimeError as e:
-        st.error(f"❌ Error al cargar el modelo:\n\n```\n{e}\n```")
         st.stop()
 
     # ── Formulario de entrada ─────────────────────────────────────────────────
@@ -248,29 +214,3 @@ def main():
 if __name__ == "__main__":
     main()
 
-# pip install streamlit
-# pip install tf_keras
-
-# En Consola
-#   python fix_modelo.py
-#        ✅ Modelo cargado exitosamente. Ahora usa 'modelo_regresion_fixed.keras' en la app.
-#  modelo original (.keras Keras 2)
-#    + Keras 3 instalada          → error batch_shape
-#    + TF_USE_LEGACY_KERAS=1      → error "Keras cannot be imported"
-#    ──────────────────────────────────────────────────────
-#    modelo_fixed (.keras Keras 3)
-#    + Keras 3 instalada          → ✅ carga correcta
-#    (sin el env var)
-
-#pip freeze > requirements.txt
-# Reemplazar requeriments.txt por: pip show streamlit tensorflow scikit-learn numpy pandas
-# streamlit==1.45.1
-# tensorflow== 1.58.0
-# scikit-learn==1.9.0
-# numpy==2.4.6
-# pandas==3.0.3
-
-
-
-
-#   streamlit run app_churn.py
